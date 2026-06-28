@@ -7,8 +7,8 @@ from pathlib import Path
 ICECAST_HOST     = os.environ.get("ICECAST_HOST", "localhost")
 ICECAST_PORT     = int(os.environ.get("ICECAST_PORT", "8000"))
 ICECAST_MOUNT    = os.environ.get("ICECAST_MOUNT", "/radio")
-ICECAST_PASSWORD = os.environ.get("ICECAST_PASSWORD", "hackme")
-ICECAST_USER     = os.environ.get("ICECAST_USER", "source")
+ICECAST_PASSWORD = os.environ.get("ICECAST_PASSWORD", "sululu231")
+ICECAST_USER     = os.environ.get("ICECAST_USER", "itachi")
 
 # ── Stream quality ───────────────────────────────────────────────────────────
 BITRATE          = os.environ.get("BITRATE", "128k")
