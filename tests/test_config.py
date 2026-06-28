@@ -47,6 +47,35 @@ class ConfigCookieTests(unittest.TestCase):
             if cookie_file and os.path.exists(cookie_file):
                 os.unlink(cookie_file)
 
+    def test_get_youtube_cookie_file_skips_placeholder_cookie_text(self):
+        placeholder = "# Netscape HTTP Cookie File\n# Example placeholder; replace this with real exported cookies from your browser.\n"
+
+        original_b64 = config.YOUTUBE_COOKIES_B64
+        original_file = config.YOUTUBE_COOKIES_FILE
+        original_read = config._read_cookie_file
+        cookie_file = None
+
+        try:
+            with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as handle:
+                handle.write(placeholder)
+                cookie_file = handle.name
+
+            def fake_read(path_str):
+                if path_str == cookie_file:
+                    return placeholder
+                return None
+
+            config.YOUTUBE_COOKIES_B64 = ""
+            config.YOUTUBE_COOKIES_FILE = cookie_file
+            config._read_cookie_file = fake_read
+            self.assertIsNone(config.get_youtube_cookie_file())
+        finally:
+            if cookie_file and os.path.exists(cookie_file):
+                os.unlink(cookie_file)
+            config.YOUTUBE_COOKIES_B64 = original_b64
+            config.YOUTUBE_COOKIES_FILE = original_file
+            config._read_cookie_file = original_read
+
     def test_get_youtube_cookie_file_decodes_base64(self):
         cookie_text = "# Netscape HTTP Cookie File\n.example.com\tTRUE\t/\tTRUE\t0\tfoo\tbar\n"
         encoded = base64.b64encode(cookie_text.encode("utf-8")).decode("ascii")

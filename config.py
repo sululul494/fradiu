@@ -39,6 +39,31 @@ def _read_cookie_file(path_str: str) -> str | None:
         return None
 
 
+def _looks_like_cookie_export(text: str) -> bool:
+    if not text:
+        return False
+
+    cleaned = text.strip()
+    if not cleaned:
+        return False
+
+    lowered = cleaned.lower()
+    if "placeholder" in lowered and "cookie" in lowered:
+        return False
+
+    lines = [line for line in cleaned.splitlines() if line.strip()]
+    non_comment_lines = [line for line in lines if not line.lstrip().startswith("#")]
+    if not non_comment_lines:
+        return False
+
+    for line in non_comment_lines:
+        parts = line.split("\t")
+        if len(parts) >= 7:
+            return True
+
+    return False
+
+
 def _load_cookie_text() -> str | None:
     sources: list[tuple[str, str]] = []  # (text, source)
     if YOUTUBE_COOKIES_B64:
@@ -62,9 +87,15 @@ def _load_cookie_text() -> str | None:
         try:
             decoded = base64.b64decode(candidate, validate=True).decode("utf-8")
             log.info("YouTube cookies loaded from %s (base64)", source)
+            if not _looks_like_cookie_export(decoded):
+                log.warning("Ignoring cookie content from %s because it does not look like a Netscape-style cookie export", source)
+                continue
             return decoded
         except Exception:
             log.info("YouTube cookies loaded from %s (raw)", source)
+            if not _looks_like_cookie_export(value):
+                log.warning("Ignoring cookie content from %s because it does not look like a Netscape-style cookie export", source)
+                continue
             return value
 
     log.info("No YouTube cookies found (YOUTUBE_COOKIES_B64/YOUTUBE_COOKIES_FILE/local files)")
