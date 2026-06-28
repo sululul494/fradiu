@@ -6,6 +6,27 @@ import config
 
 
 class ConfigCookieTests(unittest.TestCase):
+    def test_get_public_stream_url_uses_render_external_url(self):
+        original_host = config.ICECAST_HOST
+        original_port = config.ICECAST_PORT
+        original_mount = config.ICECAST_MOUNT
+        original_env = os.environ.get("RENDER_EXTERNAL_URL", "")
+        os.environ["RENDER_EXTERNAL_URL"] = "https://example.onrender.com"
+        config.ICECAST_HOST = "localhost"
+        config.ICECAST_PORT = 8000
+        config.ICECAST_MOUNT = "/radio"
+
+        try:
+            self.assertEqual(config.get_stream_url(), "https://example.onrender.com/radio")
+        finally:
+            if original_env:
+                os.environ["RENDER_EXTERNAL_URL"] = original_env
+            else:
+                os.environ.pop("RENDER_EXTERNAL_URL", None)
+            config.ICECAST_HOST = original_host
+            config.ICECAST_PORT = original_port
+            config.ICECAST_MOUNT = original_mount
+
     def test_get_youtube_cookie_file_decodes_base64(self):
         cookie_text = "# Netscape HTTP Cookie File\n.example.com\tTRUE\t/\tTRUE\t0\tfoo\tbar\n"
         encoded = base64.b64encode(cookie_text.encode("utf-8")).decode("ascii")

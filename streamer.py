@@ -45,9 +45,13 @@ def _extract_stream_url(song: Song) -> tuple[str, str, int] | None:
             info = ydl.extract_info(song.url, download=False)
             if not info:
                 return None
-            song.title    = info.get("title", "Unknown")
+            song.title = info.get("title", "Unknown")
             song.duration = info.get("duration", 0) or 0
-            return info["url"], song.title, song.duration
+            stream_url = info.get("url")
+            if not stream_url:
+                log.warning("No stream URL returned for %s", song.url)
+                return None
+            return stream_url, song.title, song.duration
     except Exception as e:
         log.error("yt-dlp error for %s: %s", song.url, e)
         return None
@@ -107,8 +111,7 @@ async def run_streamer():
         log.critical("ffmpeg not found in PATH.")
         return
 
-    log.info("Streamer ready → %s:%d%s",
-             config.ICECAST_HOST, config.ICECAST_PORT, config.ICECAST_MOUNT)
+    log.info("Streamer ready → %s", config.get_stream_url())
 
     fail_streak = 0
     while True:

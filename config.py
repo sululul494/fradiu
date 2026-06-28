@@ -86,6 +86,26 @@ def get_youtube_cookie_file() -> str | None:
         log.info("Wrote temporary YouTube cookie file: %s", handle.name)
         return handle.name
 
+
+def get_stream_url() -> str:
+    public_base = (
+        os.environ.get("STREAM_BASE_URL", "").strip()
+        or os.environ.get("PUBLIC_STREAM_URL", "").strip()
+        or os.environ.get("RENDER_EXTERNAL_URL", "").strip()
+        or ""
+    ).strip()
+
+    if public_base:
+        if "://" not in public_base:
+            public_base = f"http://{public_base}"
+        return f"{public_base.rstrip('/')}{ICECAST_MOUNT}"
+
+    host = (ICECAST_HOST or "localhost").strip()
+    if "://" in host:
+        return f"{host.rstrip('/')}{ICECAST_MOUNT}"
+
+    return f"http://{host}:{ICECAST_PORT}{ICECAST_MOUNT}"
+
 # ── Behaviour ────────────────────────────────────────────────────────────────
 RETRY_DELAY      = 5
 SONG_COOLDOWN    = 3

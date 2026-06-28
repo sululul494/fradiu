@@ -130,7 +130,7 @@ class RadioAPIHandler(BaseHTTPRequestHandler):
             self._json_resp(200, {"queue": queue_manager.peek(config.MAX_QUEUE_SHOW)})
 
         elif path == "/stream":
-            stream_url = f"http://{config.ICECAST_HOST}:{config.ICECAST_PORT}{config.ICECAST_MOUNT}"
+            stream_url = config.get_stream_url()
             body = (
                 "#EXTM3U\n"
                 f"#EXTINF:-1,ItachiHits Radio\n"
