@@ -129,6 +129,19 @@ class RadioAPIHandler(BaseHTTPRequestHandler):
         elif path == "/queue":
             self._json_resp(200, {"queue": queue_manager.peek(config.MAX_QUEUE_SHOW)})
 
+        elif path == "/stream":
+            stream_url = f"http://{config.ICECAST_HOST}:{config.ICECAST_PORT}{config.ICECAST_MOUNT}"
+            body = (
+                "#EXTM3U\n"
+                f"#EXTINF:-1,ItachiHits Radio\n"
+                f"{stream_url}\n"
+            ).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/x-mpegurl; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         else:
             self._json_resp(404, {"error": "not found",
                                   "hint": "Visit / for available endpoints"})

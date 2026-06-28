@@ -23,23 +23,39 @@ API_SECRET       = os.environ.get("API_SECRET", "change-me")  # shared secret wi
 
 # ── YouTube cookies ────────────────────────────────────────────────────────
 YOUTUBE_COOKIES_B64 = os.environ.get("YOUTUBE_COOKIES_B64", "").strip()
-if not YOUTUBE_COOKIES_B64:
-    cookie_file = Path("cookies_b64.txt")
-    if cookie_file.exists():
-        for encoding in ("utf-8-sig", "utf-8", "utf-16", "utf-16-le", "utf-16-be"):
-            try:
-                YOUTUBE_COOKIES_B64 = cookie_file.read_text(encoding=encoding).strip()
-                break
-            except UnicodeDecodeError:
-                continue
+YOUTUBE_COOKIES_FILE = os.environ.get("YOUTUBE_COOKIES_FILE", "").strip()
+
+
+def _load_cookie_text() -> str | None:
+    candidates = []
+    if YOUTUBE_COOKIES_B64:
+        candidates.append(YOUTUBE_COOKIES_B64)
+    if YOUTUBE_COOKIES_FILE:
+        candidates.append(Path(YOUTUBE_COOKIES_FILE).read_text(encoding="utf-8", errors="ignore"))
+
+    for rel_path in ("cookies_b64.txt", "www.youtube.com_cookies.txt"):
+        path = Path(rel_path)
+        if path.exists():
+            candidates.append(path.read_text(encoding="utf-8", errors="ignore"))
+
+    for value in candidates:
+        if not value:
+            continue
+        candidate = value.strip()
+        if not candidate:
+            continue
+        try:
+            decoded = base64.b64decode(candidate, validate=True).decode("utf-8")
+            return decoded
+        except Exception:
+            return value
+
+    return None
 
 
 def get_youtube_cookie_file() -> str | None:
-    if not YOUTUBE_COOKIES_B64:
-        return None
-    try:
-        decoded = base64.b64decode(YOUTUBE_COOKIES_B64).decode("utf-8")
-    except Exception:
+    text = _load_cookie_text()
+    if not text:
         return None
 
     with tempfile.NamedTemporaryFile(
@@ -48,7 +64,7 @@ def get_youtube_cookie_file() -> str | None:
         delete=False,
         encoding="utf-8",
     ) as handle:
-        handle.write(decoded)
+        handle.write(text)
         return handle.name
 
 # ── Behaviour ────────────────────────────────────────────────────────────────
