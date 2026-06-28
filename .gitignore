@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+cookies_b64.txt
+www.youtube.com_cookies.txt
