@@ -1,0 +1,2 @@
+# Netscape HTTP Cookie File
+# Example placeholder; replace this with real exported cookies from your browser.
