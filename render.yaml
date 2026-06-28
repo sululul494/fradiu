@@ -1,0 +1,21 @@
+services:
+  - type: web                   # web = port is exposed (bot needs to reach /np, /request etc.)
+    name: itachi-radio
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: apt-get update && apt-get install -y ffmpeg && pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: ICECAST_HOST
+        sync: false
+      - key: ICECAST_PORT
+        value: "8000"
+      - key: ICECAST_MOUNT
+        value: "/radio"
+      - key: ICECAST_PASSWORD
+        sync: false
+      - key: API_SECRET
+        sync: false           # must match the same value in highrise-bot's env
+      - key: BITRATE
+        value: "128k"
