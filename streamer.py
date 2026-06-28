@@ -28,6 +28,7 @@ def _build_yt_dlp_opts() -> dict:
     cookie_file = config.get_youtube_cookie_file()
     if cookie_file:
         opts["cookiefile"] = cookie_file
+        log.info("yt-dlp will use cookiefile: %s", cookie_file)
     return opts
 
 

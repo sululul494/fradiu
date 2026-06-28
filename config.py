@@ -1,7 +1,10 @@
 import base64
+import logging
 import os
 import tempfile
 from pathlib import Path
+
+log = logging.getLogger("config")
 
 # ── Icecast ──────────────────────────────────────────────────────────────────
 ICECAST_HOST     = os.environ.get("ICECAST_HOST", "localhost")
@@ -27,18 +30,26 @@ YOUTUBE_COOKIES_FILE = os.environ.get("YOUTUBE_COOKIES_FILE", "").strip()
 
 
 def _load_cookie_text() -> str | None:
-    candidates = []
+    sources: list[tuple[str, str]] = []  # (text, source)
     if YOUTUBE_COOKIES_B64:
-        candidates.append(YOUTUBE_COOKIES_B64)
+        sources.append((YOUTUBE_COOKIES_B64, "env_b64"))
     if YOUTUBE_COOKIES_FILE:
-        candidates.append(Path(YOUTUBE_COOKIES_FILE).read_text(encoding="utf-8", errors="ignore"))
+        try:
+            txt = Path(YOUTUBE_COOKIES_FILE).read_text(encoding="utf-8", errors="ignore")
+            sources.append((txt, f"file:{YOUTUBE_COOKIES_FILE}"))
+        except Exception:
+            log.debug("Unable to read YOUTUBE_COOKIES_FILE %s", YOUTUBE_COOKIES_FILE)
 
     for rel_path in ("cookies_b64.txt", "www.youtube.com_cookies.txt"):
         path = Path(rel_path)
         if path.exists():
-            candidates.append(path.read_text(encoding="utf-8", errors="ignore"))
+            try:
+                txt = path.read_text(encoding="utf-8", errors="ignore")
+                sources.append((txt, f"file:{rel_path}"))
+            except Exception:
+                log.debug("Unable to read local cookie candidate %s", rel_path)
 
-    for value in candidates:
+    for value, source in sources:
         if not value:
             continue
         candidate = value.strip()
@@ -46,10 +57,13 @@ def _load_cookie_text() -> str | None:
             continue
         try:
             decoded = base64.b64decode(candidate, validate=True).decode("utf-8")
+            log.info("YouTube cookies loaded from %s (base64)", source)
             return decoded
         except Exception:
+            log.info("YouTube cookies loaded from %s (raw)", source)
             return value
 
+    log.info("No YouTube cookies found (YOUTUBE_COOKIES_B64/YOUTUBE_COOKIES_FILE/local files)")
     return None
 
 
@@ -65,6 +79,7 @@ def get_youtube_cookie_file() -> str | None:
         encoding="utf-8",
     ) as handle:
         handle.write(text)
+        log.info("Wrote temporary YouTube cookie file: %s", handle.name)
         return handle.name
 
 # ── Behaviour ────────────────────────────────────────────────────────────────
