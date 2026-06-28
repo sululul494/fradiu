@@ -23,9 +23,8 @@ _YDL_OPTS = {
 }
 
 
-def _build_yt_dlp_opts() -> dict:
+def _build_yt_dlp_opts(cookie_file: str | None = None) -> dict:
     opts = dict(_YDL_OPTS)
-    cookie_file = config.get_youtube_cookie_file()
     if cookie_file:
         opts["cookiefile"] = cookie_file
         log.info("yt-dlp will use cookiefile: %s", cookie_file)
@@ -40,21 +39,33 @@ def _icecast_url() -> str:
 
 
 def _extract_stream_url(song: Song) -> tuple[str, str, int] | None:
-    try:
-        with yt_dlp.YoutubeDL(_build_yt_dlp_opts()) as ydl:
-            info = ydl.extract_info(song.url, download=False)
-            if not info:
-                return None
-            song.title = info.get("title", "Unknown")
-            song.duration = info.get("duration", 0) or 0
-            stream_url = info.get("url")
-            if not stream_url:
-                log.warning("No stream URL returned for %s", song.url)
-                return None
-            return stream_url, song.title, song.duration
-    except Exception as e:
-        log.error("yt-dlp error for %s: %s", song.url, e)
-        return None
+    cookie_file = config.get_youtube_cookie_file()
+    attempts = [None]
+    if cookie_file:
+        attempts.append(cookie_file)
+
+    for index, attempt_cookie in enumerate(attempts):
+        try:
+            opts = _build_yt_dlp_opts(attempt_cookie)
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(song.url, download=False)
+                if not info:
+                    return None
+                song.title = info.get("title", "Unknown")
+                song.duration = info.get("duration", 0) or 0
+                stream_url = info.get("url")
+                if not stream_url:
+                    log.warning("No stream URL returned for %s", song.url)
+                    return None
+                return stream_url, song.title, song.duration
+        except Exception as e:
+            if index == 0 and cookie_file:
+                log.warning("yt-dlp without cookies failed for %s; retrying with cookiefile", song.url)
+                continue
+            log.error("yt-dlp error for %s: %s", song.url, e)
+            return None
+
+    return None
 
 
 def _build_ffmpeg_cmd(stream_url: str, title: str) -> list[str]:

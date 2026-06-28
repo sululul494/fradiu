@@ -1,8 +1,10 @@
 import base64
 import os
+import tempfile
 import unittest
 
 import config
+import streamer
 
 
 class ConfigCookieTests(unittest.TestCase):
@@ -26,6 +28,24 @@ class ConfigCookieTests(unittest.TestCase):
             config.ICECAST_HOST = original_host
             config.ICECAST_PORT = original_port
             config.ICECAST_MOUNT = original_mount
+
+    def test_build_yt_dlp_opts_does_not_force_cookiefile_by_default(self):
+        cookie_file = None
+        try:
+            with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as handle:
+                handle.write("# Netscape HTTP Cookie File\n")
+                cookie_file = handle.name
+
+            original = config.get_youtube_cookie_file
+            config.get_youtube_cookie_file = lambda: cookie_file
+            try:
+                opts = streamer._build_yt_dlp_opts()
+                self.assertNotIn("cookiefile", opts)
+            finally:
+                config.get_youtube_cookie_file = original
+        finally:
+            if cookie_file and os.path.exists(cookie_file):
+                os.unlink(cookie_file)
 
     def test_get_youtube_cookie_file_decodes_base64(self):
         cookie_text = "# Netscape HTTP Cookie File\n.example.com\tTRUE\t/\tTRUE\t0\tfoo\tbar\n"
