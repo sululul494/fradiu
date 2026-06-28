@@ -2,6 +2,7 @@ import json
 import logging
 from pathlib import Path
 import yt_dlp
+import config
 
 log = logging.getLogger("playlist")
 
@@ -14,10 +15,31 @@ _FLAT_OPTS = {
 }
 
 
+def _build_flat_opts() -> dict:
+    opts = dict(_FLAT_OPTS)
+    cookie_file = config.get_youtube_cookie_file()
+    if cookie_file:
+        opts["cookiefile"] = cookie_file
+    return opts
+
+
+def _build_info_opts() -> dict:
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": True,
+        "ignoreerrors": True,
+    }
+    cookie_file = config.get_youtube_cookie_file()
+    if cookie_file:
+        opts["cookiefile"] = cookie_file
+    return opts
+
+
 def resolve_url(url: str) -> list[str]:
     urls = []
     try:
-        with yt_dlp.YoutubeDL(_FLAT_OPTS) as ydl:
+        with yt_dlp.YoutubeDL(_build_flat_opts()) as ydl:
             info = ydl.extract_info(url, download=False)
             if not info:
                 return []
@@ -54,8 +76,7 @@ def load_playlist(playlist_file: str) -> list[str]:
 
 
 def search_youtube(query: str) -> dict | None:
-    opts = {"quiet": True, "no_warnings": True, "extract_flat": True,
-            "ignoreerrors": True}
+    opts = _build_info_opts()
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(f"ytsearch1:{query}", download=False)
@@ -71,8 +92,7 @@ def search_youtube(query: str) -> dict | None:
 
 
 def get_video_info(url: str) -> dict | None:
-    opts = {"quiet": True, "no_warnings": True, "extract_flat": True,
-            "ignoreerrors": True}
+    opts = _build_info_opts()
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)

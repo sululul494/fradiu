@@ -23,6 +23,14 @@ _YDL_OPTS = {
 }
 
 
+def _build_yt_dlp_opts() -> dict:
+    opts = dict(_YDL_OPTS)
+    cookie_file = config.get_youtube_cookie_file()
+    if cookie_file:
+        opts["cookiefile"] = cookie_file
+    return opts
+
+
 def _icecast_url() -> str:
     return (
         f"icecast://{config.ICECAST_USER}:{config.ICECAST_PASSWORD}"
@@ -32,7 +40,7 @@ def _icecast_url() -> str:
 
 def _extract_stream_url(song: Song) -> tuple[str, str, int] | None:
     try:
-        with yt_dlp.YoutubeDL(_YDL_OPTS) as ydl:
+        with yt_dlp.YoutubeDL(_build_yt_dlp_opts()) as ydl:
             info = ydl.extract_info(song.url, download=False)
             if not info:
                 return None
